@@ -1,3 +1,4 @@
+import aiohttp
 import discord
 import asyncio
 import random
@@ -11,8 +12,8 @@ from lists import *
 class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        botID = self.bot.get_user(config.BOT_ID)
-        ownerID = self.bot.get_user(config.OWNER_ID)
+        self.botID = config.BOT_ID
+        self.ownerID = config.OWNER_ID
 
     intents = discord.Intents.default()
     intents.members = True
@@ -105,14 +106,14 @@ class Fun(commands.Cog):
     @commands.guild_only()
     async def roast(self, ctx, member: discord.Member = None):
             """>  Sick of someone? Easy! Just roast them!"""
-            await ctx.trigger_typing()
+            await ctx.typing()
             if member is None:
                 member = ctx.author
-            if member == botID:
+            if member == self.bot.get_user(self.botID):
                 return await ctx.send("Don't you dare doing that!")
-            if member == ownerID:
+            if member == self.bot.get_user(self.ownerID):
                 return await ctx.send("I'm not going to do that.")
-            await ctx.send("{random.choice(roasts)}")
+            await ctx.send(f"{random.choice(roasts)}")
 
     @commands.command(aliases=["select", "pick"])
     @commands.guild_only()
@@ -130,22 +131,37 @@ class Fun(commands.Cog):
     @commands.guild_only()
     async def howgay(self, ctx, *, user: discord.User = None):
         """> See how gay someone is (100% real)"""
-        if user == botID or user == botID:
+        
+        if user == self.bot.get_user(self.botID):
             return await ctx.send("Bot's can't be gay. You are so dumb!")
-        if user == ownerID or user == ownerID:
-            return await ctx.send(embed=discord.Embed(title="gay r8 machine", colour=discord.Colour.from_rgb(250,0,0),
-                                                      description=f"{ctx.author.name} is 100% gay"))
+        
+        if user == self.bot.get_user(self.ownerID):
+            return await ctx.send(embed=discord.Embed(
+                title="gay r8 machine", 
+                colour=discord.Colour.from_rgb(250, 0, 0),
+                description=f"{ctx.author.name} is 100% gay"
+            ))
+        
+        # Default to the author if no user is mentioned
         if user is None:
-            user = ctx.author.name
+            user = ctx.author
+        
         num = random.randint(0, 100)
         deci = random.randint(0, 9)
+        
         if num == 100:
             deci = 0
+        
         rating = f"{num}.{deci}"
-        embed = discord.Embed(title='gay r8 machine',
-                              description = f"{user.name} is {rating}% gay :rainbow_flag:",
-                              colour=ctx.author.colour)
-        await ctx.send(embed = embed)
+        
+        # Create the embed with the correct user object
+        embed = discord.Embed(
+            title='gay r8 machine',
+            description=f"{user.name} is {rating}% gay :rainbow_flag:",
+            colour=ctx.author.colour
+        )
+        
+        await ctx.send(embed=embed)
 
     @commands.command(aliases=['simpr8', 'howsimp'])
     @commands.guild_only()
@@ -153,11 +169,11 @@ class Fun(commands.Cog):
         """> See how simp someone is, 100% official score"""
         if user is None:
             user = ctx.author
-        if user == ownerID:
+        if user == self.bot.get_user(self.ownerID):
             return await ctx.send(embed = discord.Embed(title='simp r8 machine',
                                 description=f"{user.name} is 100% simp",
                                 colour=discord.Colour.from_rgb(250, 0, 0)))
-        if user == botID:
+        if user == self.bot.get_user(self.botID):
             return await ctx.send("I'm a bot not a simp.")
         num = random.randint(0, 100)
         deci = random.randint(0, 9)
@@ -171,67 +187,66 @@ class Fun(commands.Cog):
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
+    async def wanted(self, ctx, user: discord.Member = None):
+        """> Excuse me, you're under arrest."""
+        if user is None:
+            user = ctx.author
+
+        # Open the wanted poster template
+        wanted = Image.open("Wanted.jpg")
+
+        # Fetch the user's avatar
+        async with aiohttp.ClientSession() as session:
+            async with session.get(user.avatar.url) as response:
+                if response.status != 200:
+                    await ctx.send("Failed to fetch avatar.")
+                    return
+                data = BytesIO(await response.read())
+
+        # Process the avatar image
+        pfp = Image.open(data).convert("RGBA")
+        pfp = pfp.resize((171, 153))  # Resize to fit the wanted poster
+        wanted.paste(pfp, (150, 250), pfp)  # Paste with transparency
+
+        # Save the resulting image to a BytesIO object
+        output = BytesIO()
+        wanted.save(output, format="PNG")
+        output.seek(0)  # Reset the stream's position to the start
+
+        # Send the image directly from memory
+        await ctx.send(file=discord.File(output, filename="wanted.png"))
+
+    @commands.command()
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @commands.guild_only()
     async def fight(self, ctx, user1: discord.Member, user2: discord.Member = None):
         """> Fight someone! Wanna fight with yourself? Leave [user2] empty"""
-        if user2 == None:
+        
+        # If no second user is specified, default to the command author
+        if user2 is None:
             user2 = ctx.author
-        if user1 == botID or user2 == botID:
+
+        # Check if user1 or user2 is the bot or the bot's owner
+        if user1 == self.bot.get_user(self.botID) or user2 == self.bot.get_user(self.botID):
             return await ctx.send("I'm not fighting with anyone.")
-        if user1 == ownerID or user2 == ownerID:
+        
+        if user1 == self.bot.get_user(self.ownerID) or user2 == self.bot.get_user(self.ownerID):
             return await ctx.send("AB01 fucked you up so hard that you died immediately.")
+        
+        # Randomly select a winner
         win = random.choice([user1, user2])
-        if win == user1:
-            lose = user2
-        else:
-            lose = user1
+        lose = user1 if win == user2 else user2  # Assign the loser
+
         responses = [
-            f'That was intense battle, but unfortunatelly {win.mention} has beaten up {lose.mention} to death',
-            f'That was a shitty battle, they both fight themselves to death',
-            f'Is that a battle? You both suck',
-            f'Yo {lose.mention} you lose! Ha',
-            f'I\'m not sure how, but {win.mention} has won the battle']
-        await ctx.send(f'{random.choice(responses)}')
+            f'That was an intense battle, but unfortunately {win.mention} has beaten up {lose.mention} to death.',
+            f'That was a shitty battle, they both fought themselves to death.',
+            f'Is that a battle? You both suck.',
+            f'Yo {lose.mention}, you lose! Ha!',
+            f'I\'m not sure how, but {win.mention} has won the battle!'
+        ]
+        
+        # Send the random response
+        await ctx.send(random.choice(responses))
 
-    @commands.command()
-    async def wanted(self, ctx, user: discord.Member = None):
-        """> Excuse me ur under arrest"""
-        if user is None:
-            user = ctx.author
-
-        wanted = Image.open("Wanted.jpg")
-
-        asset = user.avatar_url_as(size=128)
-        data = BytesIO(await asset.read())
-        pfp = Image.open(data)
-
-        pfp.resize((171, 153))
-
-        wanted.paste(pfp, (91, 156))
-
-        wanted.save("profile.png")
-
-        await ctx.send(file=discord.File("profile.png"))
-
-    @commands.command()
-    async def disability(self, ctx, user: discord.Member = None):
-        """> Not all disabilities look like you"""
-        if user is None:
-            user = ctx.author
-
-        wanted = Image.open("disability.jpg")
-
-        asset = user.avatar_url_as(size=128)
-        data = BytesIO(await asset.read())
-        pfp = Image.open(data)
-
-        pfp.resize((151, 149))
-
-        wanted.paste(pfp, (559, 416))
-
-        wanted.save("profile.png")
-
-        await ctx.send(file=discord.File("profile.png"))
-
-def setup(bot):
-    bot.add_cog(Fun(bot))
+async def setup(bot):
+    await bot.add_cog(Fun(bot))

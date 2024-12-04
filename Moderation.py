@@ -151,7 +151,8 @@ class Moderation(commands.Cog):
         """
 
         if not members:
-            return await ctx.send(f"<:xmark:784187150542569503> | You're missing an argument - **members**")
+            x_moji = discord.utils.get(ctx.guild.emojis, name="x")
+            return await ctx.send(f"{x_moji} | You're missing an argument - **members**")
 
         error = '\n'
         try:
@@ -371,57 +372,56 @@ class Moderation(commands.Cog):
     @commands.guild_only()
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
-    async def purge(self, ctx, search=100):
+    async def purge(self, ctx, count=100):
         """> Purge messages in the chat. Default amount is set to **100**"""
         await ctx.message.delete()
-        await self.do_removal(ctx, search, lambda e: True)
-        # @purge.command(brief="Every message", description="Clear all messages in chat")
+        await self.do_removal(ctx, count, lambda e: True)
 
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     @commands.guild_only()
-    async def all(self, ctx, search=100):
+    async def all(self, ctx, count=100):
         """> Removes all messages
         Might take longer if you're purging messages that are older than 2 weeks """
         await ctx.message.delete()
-        await self.do_removal(ctx, search, lambda e: True)
+        await self.do_removal(ctx, count, lambda e: True)
 
     @purge.command(brief="User messages", description="Clear messages sent from an user")
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     @commands.guild_only()
-    async def user(self, ctx, member: discord.Member, search=100):
+    async def user(self, ctx, member: discord.Member, count=100):
         """> Removes user messages """
         await ctx.message.delete()
-        await self.do_removal(ctx, search, lambda e: e.author == member)
+        await self.do_removal(ctx, count, lambda e: e.author == member)
 
     @purge.command(name='bot')
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     @commands.guild_only()
-    async def _bot(self, ctx, prefix=None, search=100):
+    async def _bot(self, ctx, prefix=None, count=100):
         """> Removes a bot user's messages and messages with their optional prefix."""
 
         def predicate(m):
             return (m.webhook_id is None and m.author.bot) or (prefix and m.content.startswith(prefix))
 
-        await self.do_removal(ctx, search, predicate)
+        await self.do_removal(ctx, count, predicate)
 
     @purge.command()
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     @commands.guild_only()
-    async def embeds(self, ctx, search=100):
+    async def embeds(self, ctx, count=100):
         """> Removes messages that have embeds in them."""
-        await self.do_removal(ctx, search, lambda e: len(e.embeds))
+        await self.do_removal(ctx, count, lambda e: len(e.embeds))
 
     @purge.command()
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     @commands.guild_only()
-    async def images(self, ctx, search=100):
+    async def images(self, ctx, count=100):
         """> Removes messages that have embeds or attachments."""
-        await self.do_removal(ctx, search, lambda e: len(e.embeds) or len(e.attachments))
+        await self.do_removal(ctx, count, lambda e: len(e.embeds) or len(e.attachments))
 
     @purge.command()
     @commands.has_permissions(manage_messages=True)
@@ -742,9 +742,11 @@ class Moderation(commands.Cog):
         if not ctx.guild.chunked:
             await self.bot.request_offline_members(ctx.guild)
         members = sorted(ctx.guild.members, key=lambda m: m.joined_at, reverse=True)[:counts]
+        
         e = discord.Embed(title='Newest member(s) in this server', colour=discord.Colour.from_rgb(250,0,0))
         for member in members:
-            data = f'**Joined Server at** {btime.human_timedelta(member.joined_at)}\n**Account created at** {btime.human_timedelta(member.created_at)}'
+            data = f'**Joined Server at** {btime.human_timedelta(member.joined_at)}\
+                \n**Account created at** {btime.human_timedelta(member.created_at)}'
             e.add_field(name=f'**{member}** ({member.id})', value=data, inline=False)
             if count > 10:
                 e.set_footer(text="Limit is set to 10")
@@ -1310,5 +1312,5 @@ usage="<role> <Category name>",
             ctx, "discriminator", f"Found **{len(loop)}** on your search for **{search}**", loop
         )
 
-def setup(bot):
-    bot.add_cog(Moderation(bot))
+async def setup(bot):
+    await bot.add_cog(Moderation(bot))

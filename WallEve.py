@@ -46,56 +46,84 @@ async def on_ready():
     await tracker.cache_invites()
     for extension in config.EXTENSIONS:
         try:
-            client.load_extension(extension)
+            await client.load_extension(extension)
         except Exception as e:
             print(e)
 
 @tasks.loop(seconds=10)
 async def change_status():
-    await client.change_presence(activity=discord.Game(name="DM to Contact Staff"), 
+    await client.change_presence(activity=discord.Game(name="%help"), 
                                  status=discord.Status.idle)
     await asyncio.sleep(10)
     await client.change_presence(activity=discord.Activity
-                                 (type=discord.ActivityType.listening, name="%help"),
+                                 (type=discord.ActivityType.listening, name="DM for help"),
                                  status=discord.Status.idle)
     await asyncio.sleep(10)
+
+import aiohttp
+from io import BytesIO
+from PIL import Image, ImageDraw
+import discord
 
 @client.event
 async def on_member_join(member):
     welcome = Image.open("welcome.png")
     AVATAR_SIZE = 256
 
-    avatar_asset = member.avatar_url_as(format='png', size=AVATAR_SIZE)
+    # Fetch the avatar image
+    async with aiohttp.ClientSession() as session:
+        async with session.get(member.avatar.url) as response:
+            if response.status != 200:
+                print("Failed to fetch avatar image.")
+                return
+            avatar_data = BytesIO(await response.read())
 
-    buffer_avatar = BytesIO(await avatar_asset.read())
-
-    avatar_image = Image.open(buffer_avatar)
-
+    # Process the avatar image
+    avatar_image = Image.open(avatar_data).convert("RGBA")
     avatar_image = avatar_image.resize((AVATAR_SIZE, AVATAR_SIZE))
 
-    circle_image = Image.new('L', (AVATAR_SIZE, AVATAR_SIZE))
+    # Create a circular mask for the avatar
+    circle_image = Image.new("L", (AVATAR_SIZE, AVATAR_SIZE), 0)
     circle_draw = ImageDraw.Draw(circle_image)
-    circle_draw.ellipse((0, 0, AVATAR_SIZE, AVATAR_SIZE), outline="green", width=5, fill=255)
+    circle_draw.ellipse((0, 0, AVATAR_SIZE, AVATAR_SIZE), fill=255)
 
-    welcome.paste(avatar_image, (460, 45), circle_image)
+    # Apply the circular mask
+    circular_avatar = Image.new("RGBA", (AVATAR_SIZE, AVATAR_SIZE))
+    circular_avatar.paste(avatar_image, (0, 0), mask=circle_image)
 
-    welcome.save("wlcm.png")
+    # Paste the circular avatar onto the welcome image
+    welcome.paste(circular_avatar, (460, 45), circular_avatar)
 
+    # Save the final image to a BytesIO object
+    output = BytesIO()
+    welcome.save(output, format="PNG")
+    output.seek(0)  # Reset stream position
+
+    # Fetch the inviter (this assumes you have a `tracker` object set up to fetch the inviter)
     inviter = await tracker.fetch_inviter(member)
-    embed = discord.Embed(color=discord.Color.from_rgb(250, 0, 0),
-                          description=f"<a:DN_Wlcm:720229315723132950> Welcome to {config.GUILD_ID},\
-                           where nemesis thrives and the weak die.\
-                          \n<a:DN_ThisR:719866047930302464> be sure to read <#{config.RULES_ID}>\
-                          \n<a:DN_ThisR:719866047930302464> and claim your roles from <#{config.ROLES_ID}>")
-    embed.set_author(name=f"Namaste {member.name} ",
-                     icon_url=f"{member.avatar_url}")
-    ava = "https://w7.pngwing.com/pngs/609/846/png-transparent-discord-logo-discord-computer-icons-logo-computer-software-avatar-miscellaneous-blue-angle.png"
-    embed.set_footer(text=f"Inivted by: {inviter} | Total Members: {len(list(member.guild.members))}")
 
-    channel = client.get_channel(id=config.JOIN_ID)
+    # Create the embed message
+    embed = discord.Embed(
+        color=discord.Color.from_rgb(250, 0, 0),
+        description=f"<a:DN_Wlcm:720229315723132950> Welcome to {member.guild.name},\
+                      where nemesis thrives and the weak die.\
+                      \n<a:DN_ThisR:719866047930302464> Be sure to read <#{config.RULES_ID}>\
+                      \n<a:DN_ThisR:719866047930302464> and claim your roles from <#{config.ROLES_ID}>"
+    )
+    embed.set_author(
+        name=f"Namaste {member.name}",
+        icon_url=member.avatar.url
+    )
 
-    file = discord.File("wlcm.png")
-    embed.set_image(url="attachment://wlcm.png")
+    # Set the footer with inviter info and total member count
+    embed.set_footer(text=f"Invited by: {inviter} | Total Members: {len(list(member.guild.members))}")
+
+    # Get the channel where the welcome message should be sent
+    channel = client.get_channel(config.JOIN_ID)
+
+    # Send the embed with the in-memory image
+    file = discord.File(output, filename="welcome.png")
+    embed.set_image(url="attachment://welcome.png")
     await channel.send(file=file, embed=embed)
 
 @client.event

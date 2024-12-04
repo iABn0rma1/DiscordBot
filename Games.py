@@ -527,68 +527,6 @@ class Games(commands.Cog):
                         must_fire.append((fire[0], fire[1] + 1))
 
 
-    @commands.command()
-    async def rps(self, ctx, choice=None):
-        """> Play the famous "Rock, Paper, Scissors" game against me!"""
-        if choice == None:
-            embed = discord.Embed(
-                title='You gotta give a choice!',
-                color=discord.Color.red(),
-                description=f'{ctx.author.mention} you never gave a valid choice. the choice you gave was {choice}. \
-                The valid options are:\n`rock` `paper` `scissor`'
-            )
-            await ctx.send(embed=embed)
-        else:
-            x = choice.lower()
-            option = ['rock', 'paper', 'scissor']
-            op = random.choice(option)
-            if x == 'rock' or x == 'r' or x == '✊' or x == ':fist:':
-                if op == 'rock':
-                    await ctx.send(embed=discord.Embed(title=f"It's a tie!", color = discord.Color.dark_grey(),
-                         description=f'{ctx.author.name} **picked:** ✊ `rock`\
-                         \n{self.bot.user.name} **picked:** ✊ `rock`\n> {random.choice(rps_d)}'))
-                elif op == 'paper':
-                    await ctx.send(embed=discord.Embed(title=f"I win!", color = discord.Color.red(),
-                                                       description=f'{ctx.author.name} **picked:** ✊ `rock`\
-                                             \n{self.bot.user.name} **picked:** :back_of_hand: `paper`\n> {random.choice(rps_l)}'))
-                elif op == 'scissor':
-                    await ctx.send(embed=discord.Embed(title=f"You Win!", color = discord.Color.green(),
-                                                       description=f'{ctx.author.name} **picked:** ✊ `rock`\
-                                             \n{self.bot.user.name} **picked:** :v: `scissor`\n> {random.choice(rps_w)}'))
-            elif x == 'scissor' or x == 's' or x == ':scissors:' or x == ':v:':
-                if op == 'rock':
-                    await ctx.send(embed=discord.Embed(title=f"I win!", color = discord.Color.red(),
-                                                       description=f'{ctx.author.name} **picked:** :v: `scissor`\
-                                             \n{self.bot.user.name} **picked:** ✊ `rock`\n> {random.choice(rps_l)}'))
-                elif op == 'paper':
-                    await ctx.send(embed=discord.Embed(title=f"You Win!", color = discord.Color.green(),
-                                                       description=f'{ctx.author.name} **picked:** :v: `scissor`\
-                                             \n{self.bot.user.name} **picked:** :back_of_hand: `paper`\n> {random.choice(rps_w)}'))
-                elif op == 'scissor':
-                    await ctx.send(embed=discord.Embed(title=f"It's a tie!", color = discord.Color.dark_grey(),
-                                                       description=f'{ctx.author.name} **picked:** :v: `scissor`\
-                                             \n{self.bot.user.name} **picked:** :v: `scissors`\n> {random.choice(rps_d)}'))
-            elif x == 'paper' or x == 'p' or x == ':back_of_hand:':
-                if op == 'rock':
-                    await ctx.send(embed=discord.Embed(title=f"You win!", color = discord.Color.green(),
-                                                       description=f'{ctx.author.name} **picked:** :back_of_hand: `paper`\
-                                             \n{self.bot.user.name} **picked:** ✊ `rock`\n> {random.choice(rps_w)}'))
-                elif op == 'paper':
-                    await ctx.send(embed=discord.Embed(title=f"It's a tie!", color = discord.Color.dark_grey(),
-                                                       description=f'{ctx.author.name} **picked:** :back_of_hand: `paper`\
-                                             \n{self.bot.user.name} **picked:** :back_of_hand: `paper`\n> {random.choice(rps_d)}'))
-                elif op == 'scissor':
-                    await ctx.send(embed=discord.Embed(title=f"I win!", color = discord.Color.red(),
-                                                       description=f'{ctx.author.name} **picked:** :back_of_hand: `paper`\
-                                             \n{self.bot.user.name} **picked:** :v: `scissors`\n> {random.choice(rps_l)}'))
-            else:
-                embed = discord.Embed(
-                    title='You gotta give a choice!',
-                    color=discord.Color.red(),
-                    description=f'{ctx.author.mention} you never gave a valid choice. the choice you gave was {choice}. The valid options are:\n`rock` `paper` `scissor`'
-                )
-                await ctx.send(embed=embed)
-
     @commands.command(aliases=["slots"])
     @commands.guild_only()
     async def slot(self, ctx):
@@ -609,9 +547,9 @@ class Games(commands.Cog):
 
         embed = discord.Embed(title="Slotmachine", colour=ctx.author.colour)
         embed.add_field(name=name, value=f"> {value}")
-        embed.set_footer(icon_url=ctx.author.avatar_url, text=ctx.author.name)
+        embed.set_footer(icon_url=ctx.author.avatar.url, text=ctx.author.name)
         #embed.set_footer()
         await ctx.send(embed=embed)
 
-def setup(bot):
-    bot.add_cog(Games(bot))
+async def setup(bot):
+    await bot.add_cog(Games(bot))

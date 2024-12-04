@@ -1,8 +1,5 @@
-# Builtins
 import asyncio
 from typing import List
-
-# Pip
 import discord
 from discord.ext import commands
 
@@ -18,206 +15,137 @@ def helper(ctx) -> List[discord.Embed]:
 
     cmds_ = []
     cogs = ctx.bot.cogs
-    for i in cogs:
-        cmd_ = ctx.bot.get_cog(i).get_commands()
-        cmd_ = [x for x in cmd_ if not x.hidden]
-        for x in list(chunks(list(cmd_), 6)):
-            embed = discord.Embed(colour=discord.Colour.from_rgb(250,0,0))
-            embed.set_author(name=f"{i} Commands ({len(cmd_)})")
-            embed.description = ctx.bot.cogs[i].__doc__
-            for y in x:
-                embed.add_field(name=f"{y.name} {y.signature}", value=y.help, inline=False)
+    for cog_name, cog in cogs.items():
+        commands_ = cog.get_commands()
+        commands_ = [cmd for cmd in commands_ if not cmd.hidden]
+        for chunk in chunks(commands_, 10):
+            embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
+            embed.set_author(name=f"{cog_name} Commands ({len(commands_)})")
+            embed.description = cog.__doc__
+            for cmd in chunk:
+                embed.add_field(name=f"{cmd.name} {cmd.signature}", value=cmd.help or "No description", inline=False)
             cmds_.append(embed)
 
-        for n, a in enumerate(cmds_):
-            a.set_footer(
-                text=f'Page {n+1} of {len(cmds_)} | Type "{ctx.prefix}help <command>" for more information'
-            )
+    for n, embed in enumerate(cmds_):
+        embed.set_footer(
+            text=f'Page {n + 1} of {len(cmds_)} | Type "{ctx.prefix}help <command>" for more information'
+        )
     return cmds_
 
 
-def cog_helper(cog) -> List[discord.Embed]:
+def cog_helper(cog: commands.Cog) -> List[discord.Embed]:
     """Displays commands from a cog"""
 
     name = cog.__class__.__name__
     cmds_ = []
-    cmd = [x for x in cog.get_commands() if not x.hidden]
-    if not cmd:
-        return (discord.Embed(colour=discord.Colour.from_rgb(250,0,0),
-                              description=f"{name} commands are hidden.")
-                .set_author(name="ERROR \N{NO ENTRY SIGN}"))
+    commands_ = [cmd for cmd in cog.get_commands() if not cmd.hidden]
+    if not commands_:
+        embed = discord.Embed(
+            color=discord.Colour.from_rgb(250,0,0),
+            description=f"No visible commands in {name}.",
+        ).set_author(name="ERROR 🚫")
+        return [embed]
 
-    for i in list(chunks(list(cmd), 6)):
-        embed = discord.Embed(colour=discord.Colour.from_rgb(250,0,0))
-        embed.set_author(name=name)
-        embed.description = cog.__doc__
-        for x in i:
-            embed.add_field(name=f"{x.name} {x.signature}", value=x.help, inline=False)
+    for chunk in chunks(commands_, 10):
+        embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
+        embed.set_author(name=f"{name} Commands")
+        embed.description = cog.__doc__ or "No description available."
+        for cmd in chunk:
+            embed.add_field(name=f"{cmd.name} {cmd.signature}", value=cmd.help or "No description", inline=False)
         cmds_.append(embed)
 
-    for n, a in enumerate(cmds_):
-        a.set_footer(text=f"Page {n+1} of {len(cmds_)}")
-
+    for n, embed in enumerate(cmds_):
+        embed.set_footer(text=f"Page {n + 1} of {len(cmds_)}")
     return cmds_
 
 
-def command_helper(command: commands.command) -> List[discord.Embed]:
-    """Displays a command and it's sub commands"""
+def command_helper(command: commands.Command) -> List[discord.Embed]:
+    """Displays a command and its subcommands"""
 
-    try:
-        cmd = [x for x in command.commands if not x.hidden]  # retrieves commands that are not hidden
-        cmds_ = []
-        for i in list(chunks(list(cmd), 6)):
-            embed = discord.Embed(colour=discord.Colour.from_rgb(250,0,0))
-            embed.set_author(name=command.signature)
-            embed.description = command.help
-            for x in i:
-                embed.add_field(name=f"{x.name} {x.signature}", value=x.help, inline=False)
-            cmds_.append(embed)
-
-        for n, x in enumerate(cmds_):
-            x.set_footer(text=f"Page {n+1} of {len(cmds_)}")
-        return cmds_
-    except AttributeError:
-        embed = discord.Embed(colour=discord.Colour.from_rgb(250,0,0))
+    subcommands = getattr(command, "commands", [])
+    if not subcommands:
+        embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
         embed.set_author(name=f"{command.name} {command.signature}")
-        embed.description = command.help
+        embed.description = command.help or "No description available."
         return [embed]
 
+    embeds = []
+    for chunk in chunks(subcommands, 10):
+        embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
+        embed.set_author(name=f"{command.name} Subcommands")
+        embed.description = command.help or "No description available."
+        for subcmd in chunk:
+            embed.add_field(name=f"{subcmd.name} {subcmd.signature}", value=subcmd.help or "No description", inline=False)
+        embeds.append(embed)
 
-# ?tag lazy paginator is a more refined/easier to read version of this paginator.
-async def paginate(ctx, input_: List[discord.Embed]) -> None:
-    """Paginator"""
+    for n, embed in enumerate(embeds):
+        embed.set_footer(text=f"Page {n + 1} of {len(embeds)}")
+    return embeds
 
-    try:
-        pages = await ctx.send(embed=input_[0])
-    except (AttributeError, TypeError):
-        await ctx.send(embed=input_)
-        return
 
-    if len(input_) == 1:
+async def paginate(ctx, embeds: List[discord.Embed]) -> None:
+    """Paginator for multiple embeds"""
+    if not embeds:
+        await ctx.send("Nothing to display!")
         return
 
     current = 0
+    message = await ctx.send(embed=embeds[current])
 
-    r = ['\U000023ee', '\U000025c0', '\U000025b6',
-         '\U000023ed', '\U0001f522', '\U000023f9']
-    for x in r:
-        await pages.add_reaction(x)
+    if len(embeds) == 1:
+        return
 
-    paging = True
-    while paging:
-        reaction = None
+    reactions = ["⏮️", "◀️", "▶️", "⏭️", "⏹️"]
+    for reaction in reactions:
+        await message.add_reaction(reaction)
 
-        def check(r_, u_) -> bool:
-            return u_ == ctx.author and r_.message.id == pages.id and str(r_.emoji) in r
+    def check(reaction, user):
+        return user == ctx.author and reaction.message.id == message.id and str(reaction.emoji) in reactions
 
-        done, pending = await asyncio.wait([ctx.bot.wait_for('reaction_add', check=check, timeout=120),
-                                            ctx.bot.wait_for('reaction_remove', check=check, timeout=120)],
-                                           return_when=asyncio.FIRST_COMPLETED)
+    while True:
         try:
-            reaction, user = done.pop().result()
-        except asyncio.TimeoutError:
-            try:
-                await pages.clear_reactions()
-            except discord.Forbidden:
-                return
+            reaction, _ = await ctx.bot.wait_for("reaction_add", timeout=69, check=check)
 
-            paging = False
-
-        for future in pending:
-            future.cancel()
-        else:
-            if str(reaction.emoji) == r[2]:
-                current += 1
-                if current == len(input_):
-                    current = 0
-                    try:
-                        await pages.remove_reaction(r[2], ctx.author)
-                    except discord.Forbidden:
-                        pass
-                    await pages.edit(embed=input_[current])
-
-                await pages.edit(embed=input_[current])
-            elif str(reaction.emoji) == r[1]:
-                current -= 1
-                if current == 0:
-                    try:
-                        await pages.remove_reaction(r[1], ctx.author)
-                    except discord.Forbidden:
-                        pass
-
-                    await pages.edit(embed=input_[len(input_) - 1])
-
-                await pages.edit(embed=input_[current])
-            elif str(reaction.emoji) == r[0]:
+            if str(reaction.emoji) == "⏮️":
                 current = 0
-                try:
-                    await pages.remove_reaction(r[0], ctx.author)
-                except discord.Forbidden:
-                    pass
+            elif str(reaction.emoji) == "◀️":
+                current = max(current - 1, 0)
+            elif str(reaction.emoji) == "▶️":
+                current = min(current + 1, len(embeds) - 1)
+            elif str(reaction.emoji) == "⏭️":
+                current = len(embeds) - 1
+            elif str(reaction.emoji) == "⏹️":
+                await message.clear_reactions()
+                break
 
-                await pages.edit(embed=input_[current])
+            await message.edit(embed=embeds[current])
+            await message.remove_reaction(reaction, ctx.author)
 
-            elif str(reaction.emoji) == r[3]:
-                current = len(input_) - 1
-                try:
-                    await pages.remove_reaction(r[3], ctx.author)
-                except discord.Forbidden:
-                    pass
-
-                await pages.edit(embed=input_[current])
-
-            elif str(reaction.emoji) == r[4]:
-                m = await ctx.send(f"What page you do want to go? 1-{len(input_)}")
-
-                def pager(m_) -> bool:
-                    return m_.author == ctx.author and m_.channel == ctx.channel and int(m_.content) > 1 <= len(input_)
-
-                try:
-                    msg = int((await ctx.bot.wait_for('message', check=pager, timeout=60)).content)
-                except asyncio.TimeoutError:
-                    #await m.delete()
-                    return
-                current = msg - 1
-                try:
-                    await pages.remove_reaction(r[4], ctx.author)
-                except discord.Forbidden:
-                    pass
-
-                await pages.edit(embed=input_[current])
-            else:
-                try:
-                    await pages.clear_reactions()
-                except discord.Forbidden:
-                    return
-
-                paging = False
+        except asyncio.TimeoutError:
+            await message.clear_reactions()
+            break
 
 
 class Help(commands.Cog):
     """Help command"""
 
-    __slots__ = ('bot',)
-
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command(aliases=["h"], hidden=True)
-    async def help(self, ctx, *, command: str = None) -> None:
+    async def help(self, ctx, *, command: str = None):
         if not command:
             await paginate(ctx, helper(ctx))
-
-        if command:
-            thing = ctx.bot.get_cog(command) or ctx.bot.get_command(command)
-            if not thing:
-                await ctx.send(f'Looks like "{command}" is not a command or category.')
+        else:
+            obj = ctx.bot.get_cog(command) or ctx.bot.get_command(command)
+            if not obj:
+                await ctx.send(f'No command or category found for "{command}".')
                 return
-            if isinstance(thing, commands.Command):
-                await paginate(ctx, command_helper(thing))
-            else:
-                await paginate(ctx, cog_helper(thing))
+            if isinstance(obj, commands.Cog):
+                await paginate(ctx, cog_helper(obj))
+            elif isinstance(obj, commands.Command):
+                await paginate(ctx, command_helper(obj))
 
 
-def setup(bot) -> None:
-    bot.add_cog(Help(bot))
+async def setup(bot):
+    await bot.add_cog(Help(bot))

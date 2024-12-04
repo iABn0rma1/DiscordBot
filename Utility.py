@@ -6,7 +6,7 @@ import default
 import datetime
 import config
 from publicflags import UserFlags
-from paginator import Pages
+# from paginator import Pages
 from collections import Counter
 from discord.ext import commands, tasks
 from discord.utils import escape_markdown
@@ -51,15 +51,15 @@ class Utility(commands.Cog):
         RAM_Usage = self._get_ram_usage()
 
         embed = discord.Embed(colour = discord.Colour.from_rgb(250, 0, 0))
-        embed.set_author(name=self.bot.name,
+        embed.set_author(name=self.bot.user.name,
                          icon_url=f"https://images-ext-1.discordapp.net/external/QSCWqyN--Xd8qkW0GwIrRk2UopjvQ87CNOw_foaJ6Tk/%3Fsize%3D1024/https/cdn.discordapp.com/avatars/785775388286517249/96abf0b9ae176acb29a301180095fd30.png")
         embed.description = f"""
-    __**About:**__\
-    \n**Developer:** {escape_markdown(str(ownerID), as_needed=True)}\
-    \n**Testers:** {self.bot.get_user(config.TESTERS[0])}, {self.bot.get_user(config.TESTERS[1])}
-    \n**Bot version:** {version}\n**Platform:** {platform}\n**Commands:** {totcmd}\
-    \n**Prefix:** My prefix is `%`\n**Created on:** {default.date(self.bot.user.created_at)}\
-    ({default.timeago(datetime.datetime.now() - self.bot.user.created_at)})"""
+            __**About:**__\
+            \n**Developer:** {escape_markdown(str(ownerID), as_needed=True)}\
+            \n**Bot version:** {version}\n**Platform:** {platform}\n**Commands:** {totcmd}\
+            \n**Prefix:** My prefix is `%`\n**Created on:** {default.date(self.bot.user.created_at)}\
+            ({self.bot.user.created_at})
+        """
 
         embed.add_field(name="Python Version", value=ver)
         embed.add_field(name="‎", value="‎", inline=True)
@@ -69,7 +69,7 @@ class Utility(commands.Cog):
         embed.add_field(name="‎", value="‎", inline=True)
         embed.add_field(name="Total RAM Usage", value=RAM_Usage, inline=True)
 
-        embed.set_thumbnail(url=f"{ownerID.avatar_url}")
+        embed.set_thumbnail(url=f"{ownerID.avatar.url}")
         embed.set_footer(text= f'Made with Discord.py {disc}',
                          icon_url='https://images-ext-1.discordapp.net/external/h2NyqrWmotzW-h7JoyZqQ7dEGoXIQeZ4eqlHimj1pLk/https/i.imgur.com/6pg6Xv4.png')
 
@@ -89,75 +89,89 @@ class Utility(commands.Cog):
         if user is self.bot.user:
             embed = discord.Embed(colour=discord.Colour.from_rgb(250, 0, 0),
                                   title=f'{self.bot.user.name}\'s Profile Picture!')
-            embed.set_image(url=self.bot.user.avatar_url_as(static_format='png'))
+            embed.set_image(url=self.bot.user.avatar.url if user.avatar else user.default_avatar.url)
             await ctx.send(embed=embed)
         else:
             embed = discord.Embed(colour=discord.Colour.from_rgb(250, 0, 0),
                                   title=f'{user}\'s Profile Picture!')
-            embed.set_image(url = user.avatar_url_as(static_format='png'))
+            embed.set_image(url = user.avatar.url if user.avatar else user.default_avatar.url)
             await ctx.send(embed=embed)
 
     @commands.command(aliases=["si", 'server'])
     @commands.guild_only()
     async def serverinfo(self, ctx):
         """> Overview about the information of a server"""
-        description = ctx.guild.description
-        icon = ctx.guild.icon_url
+        guild = ctx.guild
+        error_404 = "https://cdnl.iconscout.com/lottie/premium/thumb/404-error-page-animation-download-in-lottie-json-gif-static-svg-file-formats--loading-not-found-the-ultimate-pack-design-development-animations-3299952.gif"
 
-        if ctx.guild.mfa_level == 0:
-            mfa = "Disabled"
-        else:
-            mfa = "Enabled"
+        # Guild description and icon/banner
+        description = guild.description or "No description available."
+        icon_url = guild.icon.url if guild.icon else error_404
+        banner_url = guild.banner.url if guild.banner else error_404
 
+        # MFA level
+        mfa_status = "Enabled" if guild.mfa_level > 0 else "Disabled"
+
+        # Member counts
+        unique_online = sum(1 for m in guild.members if m.status is discord.Status.online and not isinstance(m.activity, discord.Streaming))
+        unique_idle = sum(1 for m in guild.members if m.status is discord.Status.idle and not isinstance(m.activity, discord.Streaming))
+        unique_dnd = sum(1 for m in guild.members if m.status is discord.Status.dnd and not isinstance(m.activity, discord.Streaming))
+        unique_streaming = sum(1 for m in guild.members if isinstance(m.activity, discord.Streaming))
+        unique_offline = len(guild.members) - (unique_online + unique_idle + unique_dnd + unique_streaming)
+
+        total_members = len(guild.members)
+        human_count = sum(1 for m in guild.members if not m.bot)
+        bot_count = total_members - human_count
+
+        # Nitro boost info
+        nitro_msg = f"This server has **{guild.premium_subscription_count}** boosts."
+
+        # Embed construction
         embed = discord.Embed(
-            title=f"Server Information",
+            title="Server Information",
             description=description,
-            colour=discord.Colour.from_rgb(250, 0, 0)
+            color=discord.Color.red()
         )
-        embed.set_thumbnail(url=icon)
+        embed.set_thumbnail(url=icon_url)
+        embed.set_image(url=banner_url)
 
-        unique_members = set(ctx.guild.members)
-        unique_online = sum(1 for m in unique_members if
-                            m.status is discord.Status.online and not type(m.activity) == discord.Streaming)
-        unique_offline = sum(1 for m in unique_members if
-                             m.status is discord.Status.offline and not type(m.activity) == discord.Streaming)
-        unique_idle = sum(
-            1 for m in unique_members if m.status is discord.Status.idle and not type(m.activity) == discord.Streaming)
-        unique_dnd = sum(
-            1 for m in unique_members if m.status is discord.Status.dnd and not type(m.activity) == discord.Streaming)
-        unique_streaming = sum(1 for m in unique_members if type(m.activity) == discord.Streaming)
-        humann = sum(1 for member in ctx.guild.members if not member.bot)
-        botts = sum(1 for member in ctx.guild.members if member.bot)
+        # General information field
+        embed.add_field(
+            name="__**General Information**__",
+            value=(
+                f"**Guild Name:** {guild.name}\n"
+                f"**Guild ID:** {guild.id}\n"
+                f"**Guild Owner:** {guild.owner}\n"
+                f"**Created At:** {guild.created_at.strftime('%A %d %B %Y, %H:%M')}\n"
+                f"**MFA Status:** {mfa_status}\n"
+                f"**Verification Level:** {guild.verification_level.name.capitalize()}"
+            ),
+            inline=True
+        )
 
-        tot_mem = 0
-        for member in ctx.guild.members:
-            tot_mem += 1
+        # Members and channels field
+        embed.add_field(
+            name="__**Members and Channels**__",
+            value=(
+                f"<:online:783012763638824992> **Online:** {unique_online}\n"
+                f"<:idle:783012763861516339> **Idle:** {unique_idle}\n"
+                f"<:dnd:783012763932819496> **Do Not Disturb:** {unique_dnd}\n"
+                f"<:stream:783012763617591400> **Streaming:** {unique_streaming}\n"
+                f"<:offline:783012764180152391> **Offline:** {unique_offline}\n"
+                f"**Total Members:** {total_members} ({human_count} Humans / {bot_count} Bots)\n"
+                f"**Text Channels:** {len(guild.text_channels)}\n"
+                f"**Voice Channels:** {len(guild.voice_channels)}\n"
+                f"**Roles:** {len(guild.roles)}"
+            ),
+            inline=True
+        )
 
-        nitromsg = f"This server has **{ctx.guild.premium_subscription_count}** boosts"
-        nitromsg += "\n{0}".format(default.next_level(ctx))
-
-        embed.add_field(name="__**General Information**__",
-                        value=f"**Guild name:** {ctx.guild.name}\n**Guild ID:** {ctx.guild.id}\
-                        \n**Guild Owner:** {ctx.guild.owner}\n**Guild Owner ID:** {ctx.guild.owner.id}\
-                        \n**Created at:** {ctx.guild.created_at.__format__('%A %d %B %Y, %H:%M')}\
-                        \n**Region:** {str(ctx.guild.region).title()}\n**MFA:** {mfa}\
-                        \n**Verification level:** {str(ctx.guild.verification_level).capitalize()}",
-                        inline=True)
-        embed.add_field(name="__**Other**__",
-                        value=f"**Members:**\n<:online:783012763638824992> **{unique_online:,}**\
-                        \n<:idle:783012763861516339> **{unique_idle:,}**\
-                        \n<:dnd:783012763932819496> **{unique_dnd:,}**\
-                        \n<:stream:783012763617591400> **{unique_streaming:,}**\
-                        \n<:offline:783012764180152391> **{unique_offline:,}**\
-                        \n**Total:** {tot_mem:,} ({humann:,} Humans/{botts:,} Bots)\
-                        \n**Channels:** <:TextChannel:783009153076559903> {len(ctx.guild.text_channels)}\
-                        /<:VoiceChannel:783009153215496242> {len(ctx.guild.voice_channels)}\
-                        \n**Roles:** {len(ctx.guild.roles)}",
-                        inline=True)
-        embed.add_field(name='__**Server boost status**__',
-                        value=nitromsg, inline=False)
-        embed.set_image(url=ctx.guild.banner_url)
-
+        # Server boost info
+        embed.add_field(
+            name="__**Server Boost Status**__",
+            value=nitro_msg,
+            inline=False
+        )
         await ctx.send(embed=embed)
 
     @commands.command(name="userinfo", aliases=['ui', 'whois'])
@@ -228,14 +242,12 @@ class Utility(commands.Cog):
 
             uroles.reverse()
 
-            profile = discord.Profile
-
             emb = discord.Embed(color=ctx.author.colour)
-            emb.set_author(icon_url=user.avatar_url, name=f"{user.name}'s information")
+            emb.set_author(icon_url=user.avatar.url, name=f"{user.name}'s information")
             emb.add_field(name="__**Personal Info:**__",
                           value=f"**Full name:** {user} {discord_badges}\n**User ID:** {user.id}\
                           \n**Account created:** {user.created_at.__format__('%A %d %B %Y, %H:%M')}\
-                          \n**Bot:** {bot}\n**Avatar URL:** [Click here]({user.avatar_url})",
+                          \n**Bot:** {bot}\n**Avatar URL:** [Click here]({user.avatar.url})",
                           inline=False)
             emb.add_field(name="__**Activity Status:**__",
                           value=f"**Status:** {ustatus}\n**Activity status:** {default.member_activity(usercheck)}",
@@ -244,12 +256,7 @@ class Utility(commands.Cog):
                           value=f"**Nickname:** {user.nick}\n**Joined at:** {default.date(usercheck.joined_at)}\
                           \n**Roles: ({len(usercheck.roles) - 1}) **" + ", ".join(
                               uroles), inline=True)
-            if user.is_avatar_animated() == False:
-                emb.set_thumbnail(url=user.avatar_url_as(format='png'))
-            elif user.is_avatar_animated() == True:
-                emb.set_thumbnail(url=user.avatar_url_as(format='gif'))
-            else:
-                emb.set_thumbnail(url=user.avatar_url)
+            emb.set_thumbnail(url=user.avatar.url if user.avatar else user.default_avatar.url)
 
             await ctx.send(embed=emb)
 
@@ -297,10 +304,23 @@ class Utility(commands.Cog):
 
     @commands.command(name='time', brief='Displays Bot Owner\'s time')
     async def time(self, ctx):
-        time = datetime.now()
+        time = datetime.datetime.now()
         await ctx.send(f"Current <@{config.OWNER_ID}>'s time is: {time.strftime('%H:%M')}\
-                        CET (Central European Time)", allowed_mentions=discord.AllowedMentions(users=False))
+            \nCET (Central European Time)", allowed_mentions=discord.AllowedMentions(users=False))
 
+    @commands.command()
+    async def lem(self, ctx):
+        """Lists all available emotes in the server"""
+        
+        # Get the server (guild) from the context
+        guild = ctx.guild
+        
+        # Check if the guild has any custom emotes
+        if guild.emojis:
+            emote_list = "\n".join([f"{emote.name}: {emote.url}" for emote in guild.emojis])
+            await ctx.send(f"Here are the available emotes:\n{emote_list}")
+        else:
+            await ctx.send("This server has no custom emotes.")
 
     @commands.command(aliases=['se', 'emotes'])
     @commands.cooldown(1, 5, commands.BucketType.member)
@@ -325,5 +345,5 @@ class Utility(commands.Cog):
                           author=ctx.author)
         await paginator.paginate()
 
-def setup(bot):
-    bot.add_cog(Utility(bot))
+async def setup(bot):
+    await bot.add_cog(Utility(bot))

@@ -166,5 +166,5 @@ class Admin(commands.Cog):
         await log_channel.send(f"Message editted {message_id}")
         await ctx.message.delete()
 
-def setup(bot):
-    bot.add_cog(Admin(bot))
+async def setup(bot):
+    await bot.add_cog(Admin(bot))
