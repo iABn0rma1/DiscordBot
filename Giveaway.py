@@ -48,7 +48,7 @@ class Giveaway(commands.Cog, name="Giveaway Category"):
                 users = new_users
         await ctx.send(f'__**{winner.mention} has won the Giveaway!**__')
         embed = discord.Embed(title="🎉 __**GIVEAWAY ENDED**__ 🎉",
-                              description=f"__*Winner(s):*__\n• {winner}", colour=discord.Colour.from_rgb(250, 0, 0))
+                              description=f"__*Winner(s):*__\n• {winner}", colour=discord.Color.blue())
 
         embed.set_author(name=f"Hosted by: {giveawaymsg.author.name}", icon_url=ctx.author.avatar_url)
 
@@ -178,7 +178,7 @@ class Giveaway(commands.Cog, name="Giveaway Category"):
                     list_of_string.append(astring)
                     bruh = "\n• ".join(map(str, winners))
                     embed = discord.Embed(title="🎉 __**GIVEAWAY ENDED**__ 🎉",
-                                          description=f"__*Winner(s):*__\n• {bruh}", colour=discord.Colour.from_rgb(250,0,0))
+                                          description=f"__*Winner(s):*__\n• {bruh}", colour=discord.Color.blue())
 
                     embed.add_field(name="Prize:", value=f"🏆 {prize}")
 

@@ -65,7 +65,7 @@ class Moderation(commands.Cog):
             text = f"<:RS_bin:781641561867812905> Removed `{deleted}` messages"
             await ctx.channel.send(text, delete_after=5)
         else:
-            e = discord.Embed(colour=discord.Colour.from_rgb(250,0,0))
+            e = discord.Embed(colour=discord.Color.red())
             e.description = f"{messages}"
             await ctx.channel.send(embed=e, delete_after=5)
 
@@ -309,7 +309,7 @@ class Moderation(commands.Cog):
                 for banz in await ctx.guild.bans():
                     ben = f"• {banz.user}\n"
                     ban.append(ben)
-                    e = discord.Embed(colour=discord.Colour.from_rgb(250,0,0), title=f"Bans for {ctx.guild}",
+                    e = discord.Embed(colour=discord.Color.red(), title=f"Bans for {ctx.guild}",
                                       description="".join(ban))
                     e.set_footer(text="Are you sure you want to unban them all?")
                     await checkmsg.edit(content='', embed=e)
@@ -364,7 +364,7 @@ class Moderation(commands.Cog):
         if not bans:
             bans = "\n".join(display_bans)
             embed = discord.Embed(title = f'{bancount} Users banned', description = f'{bans}',
-                                  colour = discord.Colour.from_rgb(250,0,0))
+                                  colour = discord.Color.red())
         await ctx.send(embed = embed)
 
     @commands.group(aliases=['clear', 'prune'],
@@ -743,7 +743,7 @@ class Moderation(commands.Cog):
             await self.bot.request_offline_members(ctx.guild)
         members = sorted(ctx.guild.members, key=lambda m: m.joined_at, reverse=True)[:counts]
         
-        e = discord.Embed(title='Newest member(s) in this server', colour=discord.Colour.from_rgb(250,0,0))
+        e = discord.Embed(title='Newest member(s) in this server', colour=discord.Color.red())
         for member in members:
             data = f'**Joined Server at** {btime.human_timedelta(member.joined_at)}\
                 \n**Account created at** {btime.human_timedelta(member.created_at)}'
@@ -1101,16 +1101,13 @@ class Moderation(commands.Cog):
 
         random_id = random.randint(1111, 99999)
 
-        e = discord.Embed(colour=discord.Colour.from_rgb(250,0,0),
+        e = discord.Embed(colour=discord.Color.red(),
                           description=f"Successfully warned **{member}** for: **{reason}** with ID: **{random_id}**",
                           delete_after=15)
         e.timestamp(datetime.datetime.utcnow)
         await ctx.send(embed=e)
 
-    @commands.command(
-        name="channelstats",
-        aliases=["cs"],
-        )
+    @commands.command(name="channelstats", aliases=["cs"])
     @commands.has_guild_permissions(manage_channels=True)
     async def channelstats(self, ctx):
         """> Get stats of current channel"""
@@ -1152,10 +1149,7 @@ class Moderation(commands.Cog):
         """> Create a new Category or Channel"""
         await ctx.send("Invalid sub-command passed.")
 
-    @new.command(
-        name="category",
-usage="<role> <Category name>",
-    )
+    @new.command(name="category", usage="<role> <Category name>")
     @commands.has_guild_permissions(manage_channels=True)
     async def category(self, ctx, role: discord.Role, *, name):
         """> Create a new category"""
@@ -1167,10 +1161,7 @@ usage="<role> <Category name>",
         category = await ctx.guild.create_category(name=name, overwrites=overwrites)
         await ctx.send(f"Hey dude, I made {category.name} for ya!")
 
-    @new.command(
-        name="channel",
-        usage="<role> <channel name>",
-    )
+    @new.command(name="channel", usage="<role> <channel name>")
     @commands.has_guild_permissions(manage_channels=True)
     async def channel(self, ctx, role: discord.Role, *, name):
         """> Create a new channel"""
@@ -1192,18 +1183,14 @@ usage="<role> <Category name>",
         """> Category or Channel"""
         await ctx.send("Invalid sub-command passed")
 
-    @delete.command(
-        name="category", description="Delete a category", usage="<category> [reason]"
-    )
+    @delete.command(name="category", description="Delete a category", usage="<category> [reason]")
     @commands.has_guild_permissions(manage_channels=True)
     async def _category(self, ctx, category: discord.CategoryChannel, *, reason=None):
         """> Delte a category"""
         await category.delete(reason=reason)
         await ctx.send(f"hey! I deleted {category.name} for you")
 
-    @delete.command(
-        name="channel", description="Delete a channel", usage="<channel> [reason]"
-    )
+    @delete.command(name="channel", description="Delete a channel", usage="<channel> [reason]")
     @commands.has_guild_permissions(manage_channels=True)
     async def _channel(self, ctx, channel: discord.TextChannel = None, *, reason=None):
         """> Delete a channel"""

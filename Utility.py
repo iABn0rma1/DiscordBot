@@ -1,12 +1,11 @@
 import sys
 import psutil
-import asyncio
 import discord
 import default
 import datetime
 import config
 from publicflags import UserFlags
-# from paginator import Pages
+
 from collections import Counter
 from discord.ext import commands, tasks
 from discord.utils import escape_markdown
@@ -52,10 +51,11 @@ class Utility(commands.Cog):
 
         embed = discord.Embed(colour = discord.Colour.from_rgb(250, 0, 0))
         embed.set_author(name=self.bot.user.name,
-                         icon_url=f"https://images-ext-1.discordapp.net/external/QSCWqyN--Xd8qkW0GwIrRk2UopjvQ87CNOw_foaJ6Tk/%3Fsize%3D1024/https/cdn.discordapp.com/avatars/785775388286517249/96abf0b9ae176acb29a301180095fd30.png")
+                         icon_url=f"https://walleev.vercel.app/static/assets/ReWall-E.png")
         embed.description = f"""
             __**About:**__\
             \n**Developer:** {escape_markdown(str(ownerID), as_needed=True)}\
+            \n**Testers:** {self.bot.get_user(395852492383977472)}, {self.bot.get_user(747176373142945822)}, {self.bot.get_user(701673224965980221)}\
             \n**Bot version:** {version}\n**Platform:** {platform}\n**Commands:** {totcmd}\
             \n**Prefix:** My prefix is `%`\n**Created on:** {default.date(self.bot.user.created_at)}\
             ({self.bot.user.created_at})
@@ -69,7 +69,7 @@ class Utility(commands.Cog):
         embed.add_field(name="‎", value="‎", inline=True)
         embed.add_field(name="Total RAM Usage", value=RAM_Usage, inline=True)
 
-        embed.set_thumbnail(url=f"{ownerID.avatar.url}")
+        embed.set_thumbnail(url=f"{self.bot.user.avatar.url}")
         embed.set_footer(text= f'Made with Discord.py {disc}',
                          icon_url='https://images-ext-1.discordapp.net/external/h2NyqrWmotzW-h7JoyZqQ7dEGoXIQeZ4eqlHimj1pLk/https/i.imgur.com/6pg6Xv4.png')
 
@@ -130,7 +130,7 @@ class Utility(commands.Cog):
         embed = discord.Embed(
             title="Server Information",
             description=description,
-            color=discord.Color.red()
+            color=discord.Color.blue()
         )
         embed.set_thumbnail(url=icon_url)
         embed.set_image(url=banner_url)
@@ -289,7 +289,7 @@ class Utility(commands.Cog):
         if offline:
             message += f"<:offline:783012764180152391> {', '.join(offline)}\n"
 
-        e = discord.Embed(color=discord.Colour.from_rgb(250,0,0), title=f"{ctx.guild.name} mods",
+        e = discord.Embed(color=discord.Color.blue(), title=f"{ctx.guild.name} mods",
                           description="This lists everyone who can ban and/or kick.")
         e.add_field(name="Server Staff List:", value=message)
 
@@ -297,6 +297,7 @@ class Utility(commands.Cog):
 
     @commands.command(brief='Privacy policy', aliases=['pp', 'policy', 'privacypolicy'])
     async def privacy(self, ctx):
+        """> Displays the privacy policy of the bot"""
         e = discord.Embed(color=discord.Color.blurple(), title=f"{self.bot.user} Privacy Policy's")
         e.add_field(name='What data is being stored?', value="No data of you is being stored as of now", inline=False)
         e.add_field(name='What should I do if I have any concerns?', value=f"You can shoot a direct message to **{ctx.guild.owner}** or email us at `amanbarthwal0110@gmail.com`")
@@ -304,46 +305,10 @@ class Utility(commands.Cog):
 
     @commands.command(name='time', brief='Displays Bot Owner\'s time')
     async def time(self, ctx):
+        """> Displays the current time of the bot owner"""
         time = datetime.datetime.now()
         await ctx.send(f"Current <@{config.OWNER_ID}>'s time is: {time.strftime('%H:%M')}\
-            \nCET (Central European Time)", allowed_mentions=discord.AllowedMentions(users=False))
-
-    @commands.command()
-    async def lem(self, ctx):
-        """Lists all available emotes in the server"""
-        
-        # Get the server (guild) from the context
-        guild = ctx.guild
-        
-        # Check if the guild has any custom emotes
-        if guild.emojis:
-            emote_list = "\n".join([f"{emote.name}: {emote.url}" for emote in guild.emojis])
-            await ctx.send(f"Here are the available emotes:\n{emote_list}")
-        else:
-            await ctx.send("This server has no custom emotes.")
-
-    @commands.command(aliases=['se', 'emotes'])
-    @commands.cooldown(1, 5, commands.BucketType.member)
-    @commands.guild_only()
-    async def serveremotes(self, ctx):
-        """> Get a list of all the emotes in the server"""
-
-        _all = []
-        for num, e in enumerate(ctx.guild.emojis, start=0):
-            _all.append(f"`[{num + 1}]` {e} **{e.name}** | {e.id}\n")
-
-        if len(_all) == 0:
-            return await ctx.send(f"<:xmark:784187150542569503> Server has no emotes!")
-
-        paginator = Pages(ctx,
-                          title=f"{ctx.guild.name} emotes list",
-                          entries=_all,
-                          thumbnail=None,
-                          per_page=15,
-                          embed_color=discord.Colour.from_rgb(250,0,0),
-                          show_entry_count=True,
-                          author=ctx.author)
-        await paginator.paginate()
+            \nIST (Indian Standard Time)", allowed_mentions=discord.AllowedMentions(users=False))
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))

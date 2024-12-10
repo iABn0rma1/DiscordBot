@@ -34,7 +34,7 @@ class Admin(commands.Cog):
             role = role.members
             for member in role:
                 member_id = member.id
-                memeber = await self.bot.fetch_user(member_id)
+                member = await self.bot.fetch_user(member_id)
                 await member.send(msg)
                 embed = discord.Embed(colour=discord.Colour.from_rgb(250, 0, 0))
                 embed.add_field(name="Message:", value=f"`{msg}`", inline=False)
@@ -71,11 +71,11 @@ class Admin(commands.Cog):
         embed = discord.Embed(
             title = "New Announcement",
             description = msg,
-            colour = discord.Colour.from_rgb(250, 0, 0))
+            colour = discord.Color.blue())
         embed.set_author(name="刀ARK么れEMESIS")
         embed.set_thumbnail \
             (url='https://images-ext-1.discordapp.net/external/K5AsUVeDxdVXRiI2CXwLBzR5FnCL2FI3cxqgo6N_vqE/https/cdn.mee6.xyz/moderator-logs/719754177940684881/a_30a6d54032ce1f02d5358247058df837.gif')
-        embed.set_footer(text="#NemesisAintBorn", icon_url='https://images-ext-1.discordapp.net/external/pd__2K3vSC-oG_qS3xref25-hpBehKYBsdPJc0i-tHM/https/media.discordapp.net/attachments/778268429715111957/779417104335372299/1605897884519.png')
+        embed.set_footer(text="#NemesisAintBorn", icon_url='https://walleev.vercel.app/static/assets/ReWall-E.png')
         await channel.send(content=f"@everyone", embed=embed)
 
     @commands.command(hidden=True)
@@ -85,10 +85,10 @@ class Admin(commands.Cog):
         """> Edit Announcement"""
         msg = await ctx.fetch_message(message_id)
         embed = discord.Embed(title="New Announcement", description=new_desc,
-                              colour=discord.Colour.from_rgb(250, 0, 0),)
+                              colour=discord.Colour.blue(),)
         embed.set_author(name="刀ARK么れEMESIS")
         embed.set_thumbnail(url='https://images-ext-1.discordapp.net/external/K5AsUVeDxdVXRiI2CXwLBzR5FnCL2FI3cxqgo6N_vqE/https/cdn.mee6.xyz/moderator-logs/719754177940684881/a_30a6d54032ce1f02d5358247058df837.gif')
-        embed.set_footer(text="#NemesisAintBorn", icon_url='https://images-ext-1.discordapp.net/external/pd__2K3vSC-oG_qS3xref25-hpBehKYBsdPJc0i-tHM/https/media.discordapp.net/attachments/778268429715111957/779417104335372299/1605897884519.png')
+        embed.set_footer(text="#NemesisAintBorn", icon_url='https://walleev.vercel.app/static/assets/ReWall-E.png')
         await msg.edit(content=f"@everyone", embed=embed)
         await ctx.message.delete()
 
@@ -99,7 +99,7 @@ class Admin(commands.Cog):
         """> Send an image in embed"""
         await ctx.send(f'Message sended to {channel.mention}')
         embed = discord.Embed(
-            colour=discord.Colour.from_rgb(250, 0, 0))
+            colour=discord.Colour.blue())
         embed.set_image(url=msg)
         await channel.send(embed=embed)
 
@@ -109,7 +109,7 @@ class Admin(commands.Cog):
     async def edit_imgembed(self, ctx, message_id, *, new_url):
         """> Edit image embed"""
         msg = await ctx.fetch_message(message_id)
-        embed = discord.Embed(colour=discord.Colour.from_rgb(250,0,0))
+        embed = discord.Embed(colour=discord.Colour.blue())
         embed.set_image(url = new_url)
         await msg.edit(embed=embed)
         await ctx.message.delete()
@@ -123,7 +123,7 @@ class Admin(commands.Cog):
         embed = discord.Embed(
             title = tit,
             description = msg,
-            colour = discord.Colour.from_rgb(250, 0, 0))
+            colour = discord.Color.blue())
         await channel.send(embed=embed)
 
     @commands.command(hidden=True)
@@ -135,7 +135,7 @@ class Admin(commands.Cog):
         embed = discord.Embed(
             title=new_tit,
             description=new_msg,
-            colour=discord.Colour.from_rgb(250, 0, 0))
+            colour=discord.Colour.blue())
         await msg.edit(embed=embed)
         await ctx.message.delete()
 
@@ -147,9 +147,9 @@ class Admin(commands.Cog):
         await ctx.send(f'Message sended to {channel.mention}')
         embed = discord.Embed(
             description = msg,
-            colour = discord.Colour.from_rgb(250, 0, 0))
+            colour = discord.Color.blue())
         embed.set_footer(text="#NemesisAintBorn",
-                         icon_url='https://images-ext-1.discordapp.net/external/pd__2K3vSC-oG_qS3xref25-hpBehKYBsdPJc0i-tHM/https/media.discordapp.net/attachments/778268429715111957/779417104335372299/1605897884519.png')
+                         icon_url='https://walleev.vercel.app/static/assets/ReWall-E.png')
         await channel.send(embed=embed)
 
     @commands.command()
@@ -161,7 +161,7 @@ class Admin(commands.Cog):
         msg = await ctx.fetch_message(message_id)
         embed = discord.Embed(
             description=new_msg,
-            colour=discord.Colour.from_rgb(250, 0, 0))
+            colour=discord.Colour.blue())
         await msg.edit(embed=embed)
         await log_channel.send(f"Message editted {message_id}")
         await ctx.message.delete()

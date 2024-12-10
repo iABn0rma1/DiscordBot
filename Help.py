@@ -19,7 +19,7 @@ def helper(ctx) -> List[discord.Embed]:
         commands_ = cog.get_commands()
         commands_ = [cmd for cmd in commands_ if not cmd.hidden]
         for chunk in chunks(commands_, 10):
-            embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
+            embed = discord.Embed(color=discord.Color.blue())
             embed.set_author(name=f"{cog_name} Commands ({len(commands_)})")
             embed.description = cog.__doc__
             for cmd in chunk:
@@ -41,13 +41,13 @@ def cog_helper(cog: commands.Cog) -> List[discord.Embed]:
     commands_ = [cmd for cmd in cog.get_commands() if not cmd.hidden]
     if not commands_:
         embed = discord.Embed(
-            color=discord.Colour.from_rgb(250,0,0),
+            color=discord.Color.blue(),
             description=f"No visible commands in {name}.",
         ).set_author(name="ERROR 🚫")
         return [embed]
 
     for chunk in chunks(commands_, 10):
-        embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
+        embed = discord.Embed(color=discord.Color.blue())
         embed.set_author(name=f"{name} Commands")
         embed.description = cog.__doc__ or "No description available."
         for cmd in chunk:
@@ -64,14 +64,14 @@ def command_helper(command: commands.Command) -> List[discord.Embed]:
 
     subcommands = getattr(command, "commands", [])
     if not subcommands:
-        embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
+        embed = discord.Embed(color=discord.Color.blue())
         embed.set_author(name=f"{command.name} {command.signature}")
         embed.description = command.help or "No description available."
         return [embed]
 
     embeds = []
     for chunk in chunks(subcommands, 10):
-        embed = discord.Embed(color=discord.Colour.from_rgb(250,0,0))
+        embed = discord.Embed(color=discord.Color.blue())
         embed.set_author(name=f"{command.name} Subcommands")
         embed.description = command.help or "No description available."
         for subcmd in chunk:

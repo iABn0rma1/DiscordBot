@@ -44,7 +44,7 @@ class Fun(commands.Cog):
             await msg.clear_reactions()
         except asyncio.TimeoutError:
             await msg.delete()
-            await ctx.send(f"well it seems **{user.name}** didnt want a beer with **{ctx.author.name}** ;-;")
+            await ctx.send(f"well it seems **{user.name}** didn't want a beer with **{ctx.author.name}** ;-;")
         except discord.Forbidden:
             beer_offer = f"**{user.name}**, you have a 🍺 from **{ctx.author.name}**"
             beer_offer = beer_offer + f"\n\n**reason:** {reason}" if reason else beer_offer
@@ -69,7 +69,7 @@ class Fun(commands.Cog):
         """> Sends a random PJ"""
         embed = discord.Embed(
             title='',
-            color=discord.Color.from_rgb(250,0,0)
+            color=ctx.author.colour
         )
         embed.add_field(name='**Joke**', value=f'{random.choice(joke)}')
         await ctx.send(embed=embed)
@@ -138,7 +138,7 @@ class Fun(commands.Cog):
         if user == self.bot.get_user(self.ownerID):
             return await ctx.send(embed=discord.Embed(
                 title="gay r8 machine", 
-                colour=discord.Colour.from_rgb(250, 0, 0),
+                colour=ctx.author.colour,
                 description=f"{ctx.author.name} is 100% gay"
             ))
         
@@ -172,7 +172,7 @@ class Fun(commands.Cog):
         if user == self.bot.get_user(self.ownerID):
             return await ctx.send(embed = discord.Embed(title='simp r8 machine',
                                 description=f"{user.name} is 100% simp",
-                                colour=discord.Colour.from_rgb(250, 0, 0)))
+                                colour=ctx.author.colour))
         if user == self.bot.get_user(self.botID):
             return await ctx.send("I'm a bot not a simp.")
         num = random.randint(0, 100)

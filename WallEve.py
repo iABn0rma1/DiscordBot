@@ -1,24 +1,45 @@
-import discord
-import DiscordUtils
-import asyncio
 import time
 import datetime
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from io import BytesIO
 from PIL import Image, ImageDraw
-import config
+
+import json
+import asyncio
+import aiohttp
+
+import discord
+import DiscordUtils
 from discord.ext import commands, tasks
 
-TOKEN = config.BOT_TOKEN
+import os
+TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
 
-client = commands.Bot(command_prefix=commands.when_mentioned_or('%'), intents=discord.Intents.all(),
+client = commands.Bot(command_prefix=commands.when_mentioned_or('!'), intents=discord.Intents.all(),
                       description="BOT", pm_help=True, case_insensitive=True,
-                      owner_id=config.OWNER_ID
+                      owner_id=os.environ.get("DISCORD_BOT_OWNER_ID")
                       )
 tracker = DiscordUtils.InviteTracker(client)
 
 client._uptime = None
-
 client.remove_command("help")
+
+EXTENSIONS = [
+    "Admin",
+    "Fun",
+    "Games",
+    # "Giveaway",
+    "Configure",
+    "Help",
+    "Miscellaneous",
+    "Moderation",
+    "Owner",
+    # "tickets", 
+    "Utility",
+]
 
 @client.event
 async def on_connect():
@@ -44,7 +65,7 @@ async def on_ready():
     print(f"Discord.py version: {discord.__version__}")
     print(f'--------------------------------------')
     await tracker.cache_invites()
-    for extension in config.EXTENSIONS:
+    for extension in EXTENSIONS:
         try:
             await client.load_extension(extension)
         except Exception as e:
@@ -60,13 +81,24 @@ async def change_status():
                                  status=discord.Status.idle)
     await asyncio.sleep(10)
 
-import aiohttp
-from io import BytesIO
-from PIL import Image, ImageDraw
-import discord
-
 @client.event
 async def on_member_join(member):
+    # Load config.json to fetch the guild and welcome channel ID
+    with open('config.json', 'r') as f:
+        config_data = json.load(f)
+
+    guild_id = str(member.guild.id)  # Convert guild ID to string
+    if guild_id not in config_data:
+        print("Guild not found in config.")
+        return
+
+    # Fetch welcome channel ID from config
+    welcome_channel_id = config_data[guild_id].get('important_channels', {}).get('welcome', None)
+    if not welcome_channel_id:
+        print("Welcome channel not set in config.")
+        return
+
+    # Load the welcome image and process the avatar
     welcome = Image.open("welcome.png")
     AVATAR_SIZE = 256
 
@@ -107,8 +139,8 @@ async def on_member_join(member):
         color=discord.Color.from_rgb(250, 0, 0),
         description=f"<a:DN_Wlcm:720229315723132950> Welcome to {member.guild.name},\
                       where nemesis thrives and the weak die.\
-                      \n<a:DN_ThisR:719866047930302464> Be sure to read <#{config.RULES_ID}>\
-                      \n<a:DN_ThisR:719866047930302464> and claim your roles from <#{config.ROLES_ID}>"
+                      \n<a:DN_ThisR:719866047930302464> Be sure to read <#{config_data[guild_id].get('important_channels', {}).get('rules', 'Not set')}>\
+                      \n<a:DN_ThisR:719866047930302464> and claim your roles from <#{config_data[guild_id].get('important_channels', {}).get('roles', 'Not set')}>"
     )
     embed.set_author(
         name=f"Namaste {member.name}",
@@ -119,63 +151,92 @@ async def on_member_join(member):
     embed.set_footer(text=f"Invited by: {inviter} | Total Members: {len(list(member.guild.members))}")
 
     # Get the channel where the welcome message should be sent
-    channel = client.get_channel(config.JOIN_ID)
+    welcome_channel = client.get_channel(int(welcome_channel_id))
 
-    # Send the embed with the in-memory image
-    file = discord.File(output, filename="welcome.png")
-    embed.set_image(url="attachment://welcome.png")
-    await channel.send(file=file, embed=embed)
+    if welcome_channel:
+        # Send the embed with the in-memory image
+        file = discord.File(output, filename="welcome.png")
+        embed.set_image(url="attachment://welcome.png")
+        await welcome_channel.send(file=file, embed=embed)
+    else:
+        print(f"Welcome channel with ID {welcome_channel_id} not found in guild.")
 
 @client.event
 async def on_message(message):
+    # Avoid responding to bot's own messages
+    if message.author == client.user:
+        return
+
+    # Handle messages mentioning the bot for prefix information
     if message.content.startswith(f"<@!{client.user.id}>") or message.content == f"<@!{client.user.id}>":
         await message.channel.send(f"My prefix is `%`")
-
-    if message.channel.id == config.MEME_ID:    #memes
-        await message.add_reaction(f"<:PizzaSlut:1217203161429708873>")
-        # await message.add_reaction(f"<:DN_NotOk:766392304138715138>")
-        # await message.add_reaction(f"<:DN_GetRekt:766549673556836384>")
-        # await message.add_reaction(f"<:DN_RIP:766549674076143636>")
-        # await message.add_reaction(f"<:DN_GG:786903401128001596>")
-        # await message.add_reaction(f"<:DN_WTF:766549673665495071>")
-        # await message.add_reaction(f"<:DN_LOL:766549673955033088>")
-        # await message.add_reaction(f"<:DN_Clap:766392302884749363>")
-        # await message.add_reaction(f"<:DN_LaughingWithGun:721551289670172672>")
-        # await message.add_reaction(f"<:DN_PepeRevenge:719868161083834451>")
-
-    client.channel = client.get_channel(config.LOG_ID)
-    if not client.channel:
-        print(f'Channel with ID {config.LOG_ID} not found.')
-        await client.close()
-    author = message.author
-    if author == client.user:
         return
-    if type(message.channel) is discord.DMChannel:
-        # for the purpose of nicknames, if anys
-        for server in client.guilds:
-            member = server.get_member(author.id)
-            if member:
-                author = member
-            break
-        embed = discord.Embed(title="Mod Mail 📬", description=message.content,
-                              colour=discord.Colour.from_rgb(250,0,0))
-        if isinstance(author, discord.Member) and author.nick:
-            author_name = f'{author.nick} ({author})'
-        else:
-            author_name = str(author)
-        embed.timestamp=datetime.datetime.utcnow()
-        embed.set_author(name=author_name)#,
-                        #  icon_url=author.avatar_url if author.avatar else author.default_avatar_url)
-        to_send = f'{author.mention}'
-        if message.attachments:
-            attachment_urls = []
-            for attachment in message.attachments:
-                attachment_urls.append(f'[{attachment.filename}]({attachment.url}) '
-                                       f'({attachment.size} bytes)')
-            attachment_msg = '\N{BULLET} ' + '\n\N{BULLET} '.join(attachment_urls)
-            embed.add_field(name='Attachments', value=attachment_msg, inline=False)
-        await client.channel.send(to_send, embed=embed)
-        client.last_id = author.id
+
+    # Load configuration data from JSON
+    with open('config.json', 'r') as f:
+        config_data = json.load(f)
+
+    # Determine the context: Guild or DM
+    if isinstance(message.channel, discord.DMChannel):
+        # Handle direct messages (mod mail)
+        await handle_direct_message(client, message, config_data)
+    else:
+        # Handle guild-specific events
+        guild_id = str(message.guild.id)
+        
+        # React to messages in the meme channel
+        meme_channel_id = config_data.get(guild_id, {}).get('important_channels', {}).get('memes')
+        if meme_channel_id and message.channel.id == int(meme_channel_id):
+            await message.add_reaction("<:PizzaSlut:1217203161429708873>")
+        
+        # Fetch the logs channel
+        log_channel_id = config_data.get(guild_id, {}).get('important_channels', {}).get('logs')
+        if log_channel_id:
+            client.channel = client.get_channel(int(log_channel_id))
+            if not client.channel:
+                print(f'Log channel with ID {log_channel_id} not found.')
+
+    # Allow commands to be processed by commands extension
     await client.process_commands(message)
 
-client.run(TOKEN)
+async def handle_direct_message(client, message, config_data):
+    """Handles incoming direct messages."""
+    author = message.author
+
+    # Attempt to find the author in the client's guilds to resolve nickname
+    for guild in client.guilds:
+        member = guild.get_member(author.id)
+        if member:
+            author = member
+            break
+
+    # Create the embed for the mod mail
+    embed = discord.Embed(
+        title="Mod Mail 📬",
+        description=message.content,
+        colour=discord.Colour.from_rgb(250, 0, 0),
+        timestamp=datetime.now(ZoneInfo("Asia/Kolkata")),
+    )
+    author_name = f"{author.nick} ({author})" if isinstance(author, discord.Member) and author.nick else str(author)
+    embed.set_author(name=author_name)
+
+    # Handle attachments if any
+    if message.attachments:
+        attachment_urls = [
+            f"[{attachment.filename}]({attachment.url}) ({attachment.size} bytes)"
+            for attachment in message.attachments
+        ]
+        embed.add_field(name="Attachments", value="\n".join(attachment_urls), inline=False)
+
+    # Send the mod mail to the log channel
+    to_send = f"{author.mention}"
+    if hasattr(client, 'channel') and client.channel:
+        await client.channel.send(to_send, embed=embed)
+        client.last_id = author.id
+    else:
+        print("Log channel not set. Ensure the log channel is configured properly.")
+
+from keep_alive import keep_alive
+keep_alive()
+
+client.run(f"{TOKEN}")
