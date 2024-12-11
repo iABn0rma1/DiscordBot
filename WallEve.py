@@ -16,7 +16,6 @@ import DiscordUtils
 from discord.ext import commands, tasks
 
 import os
-TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
 
 client = commands.Bot(command_prefix=commands.when_mentioned_or('%'), intents=discord.Intents.all(),
                       description="BOT", pm_help=True, case_insensitive=True,
@@ -73,7 +72,7 @@ async def on_ready():
 
 @tasks.loop(seconds=10)
 async def change_status():
-    await client.change_presence(activity=discord.Game(name="!help"), 
+    await client.change_presence(activity=discord.Game(name="%help"), 
                                  status=discord.Status.idle)
     await asyncio.sleep(10)
     await client.change_presence(activity=discord.Activity
@@ -235,9 +234,3 @@ async def handle_direct_message(client, message, config_data):
         client.last_id = author.id
     else:
         print("Log channel not set. Ensure the log channel is configured properly.")
-
-import uvicorn
-from app import app
-uvicorn.run(app, host="0.0.0.0", port=8000)
-
-client.run(f"{TOKEN}")
