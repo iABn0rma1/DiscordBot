@@ -73,7 +73,7 @@ async def on_ready():
 
 @tasks.loop(seconds=10)
 async def change_status():
-    await client.change_presence(activity=discord.Game(name="%help"), 
+    await client.change_presence(activity=discord.Game(name="!help"), 
                                  status=discord.Status.idle)
     await asyncio.sleep(10)
     await client.change_presence(activity=discord.Activity
